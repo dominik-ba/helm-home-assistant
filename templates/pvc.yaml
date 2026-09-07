@@ -1,0 +1,53 @@
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "home-assistant.fullname" . }}-config
+  labels:
+    {{- include "home-assistant.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.persistence.accessModes | nindent 4 }}
+  {{- with .Values.persistence.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+{{- end }}
+{{- if and .Values.backupLocation.enabled (not .Values.backupLocation.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "home-assistant.fullname" . }}-backups
+  labels:
+    {{- include "home-assistant.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.backupLocation.accessModes | nindent 4 }}
+  {{- with .Values.backupLocation.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.backupLocation.size }}
+{{- end }}
+{{- if and .Values.pythonMatterServer.enabled .Values.pythonMatterServer.persistence.enabled (not .Values.pythonMatterServer.persistence.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "home-assistant.fullname" . }}-matter-server
+  labels:
+    {{- include "home-assistant.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.pythonMatterServer.persistence.accessModes | nindent 4 }}
+  {{- with .Values.pythonMatterServer.persistence.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.pythonMatterServer.persistence.size }}
+{{- end }}

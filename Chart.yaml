@@ -1,0 +1,14 @@
+apiVersion: v2
+name: home-assistant
+description: A generic, configurable Helm chart for Home Assistant on Kubernetes
+type: application
+version: 0.2.0
+appVersion: "2026.7"
+icon: https://upload.wikimedia.org/wikipedia/commons/6/6e/Home_Assistant_Logo.svg
+home: https://github.com/dominik-ba/helm-home-assistant
+sources:
+  - https://github.com/dominik-ba/helm-home-assistant
+  - https://github.com/home-assistant/home-assistant
+maintainers:
+  - name: dominik-ba
+    url: https://github.com/dominik-ba

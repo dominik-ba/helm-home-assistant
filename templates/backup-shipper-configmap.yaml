@@ -1,0 +1,36 @@
+{{- if and .Values.backupShipper.enabled .Values.backupLocation.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "home-assistant.fullname" . }}-backup-script
+  labels:
+    {{- include "home-assistant.labels" . | nindent 4 }}
+data:
+  backup-shipper.sh: |-
+    #!/bin/sh
+    set -eu
+    backup_source_dir="/config/backups"
+    backup_target_dir="{{ .Values.backupLocation.mountPath }}/{{ .Values.backupLocation.subPath }}"
+    mkdir -p "$backup_source_dir" "$backup_target_dir"
+    while true; do
+      echo "Scanning for Home Assistant backup archives..."
+      find "$backup_source_dir" -maxdepth 1 -type f -name '*.tar' -print0 | sort -z | while IFS= read -r -d '' backup_path; do
+        backup_name=$(basename "$backup_path")
+        target_path="$backup_target_dir/$backup_name"
+        tmp_path="${target_path}.tmp"
+
+        if [ ! -f "$target_path" ] || [ "$backup_path" -nt "$target_path" ]; then
+          cp "$backup_path" "$tmp_path"
+          mv "$tmp_path" "$target_path"
+        fi
+      done
+
+      echo "Pruning old backups to keep {{ .Values.backupPolicy.retention.keep }} copies..."
+      find "$backup_target_dir" -maxdepth 1 -type f -name '*.tar' -printf '%T@ %p\n' | sort -nr | awk 'NR > {{ .Values.backupPolicy.retention.keep }} {print $2}' | while read -r stale_backup; do
+        rm -f "$stale_backup"
+      done
+
+      echo "Waiting for 5 minutes before next check..."
+      sleep 300
+    done
+{{- end }}

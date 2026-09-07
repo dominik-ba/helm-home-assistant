@@ -1,0 +1,7 @@
+Thank you for installing Home Assistant.
+
+To access the application, use the service URL:
+  http://{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local:8123
+
+If ingress is enabled, the configured host is:
+  {{ .Values.ingress.host }}

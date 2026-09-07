@@ -1,0 +1,178 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "home-assistant.fullname" . }}
+  labels:
+    {{- include "home-assistant.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "home-assistant.fullname" . }}
+  replicas: {{ .Values.replicaCount | default 1 }}
+  podManagementPolicy: OrderedReady
+  selector:
+    matchLabels:
+      {{- include "home-assistant.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "home-assistant.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "home-assistant.serviceAccountName" . }}
+      {{- if .Values.hostNetwork | default true }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- else }}
+      dnsPolicy: ClusterFirst
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: fix-config-backups-perms
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              mkdir -p /config/backups
+              chmod 0775 /config/backups
+              chown -R 1000:1000 /config/backups
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config
+      containers:
+        - name: home-assistant
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.containerPort | default 8123 }}
+              protocol: TCP
+          env:
+            {{- range $name, $value := .Values.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: dbus
+              mountPath: /run/dbus
+              readOnly: true
+            - name: config-volume
+              mountPath: /config
+            {{- if and .Values.backupLocation.enabled .Values.backupShipper.enabled }}
+            - name: backup-volume
+              mountPath: {{ .Values.backupLocation.mountPath }}
+            {{- end }}
+          {{- if .Values.probes.enabled }}
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.probes.startup.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          {{- end }}
+        {{- if and .Values.backupShipper.enabled .Values.backupLocation.enabled }}
+        - name: backup-shipper
+          image: "{{ .Values.backupShipper.repository }}:{{ .Values.backupShipper.tag }}"
+          imagePullPolicy: {{ .Values.backupShipper.pullPolicy }}
+          command: ["/bin/sh", "-c", "/scripts/backup-shipper.sh"]
+          securityContext:
+            runAsGroup: 1000
+            runAsUser: 1000
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config
+            - name: backup-volume
+              mountPath: {{ .Values.backupLocation.mountPath }}
+            - name: backup-script
+              mountPath: /scripts
+              readOnly: true
+        {{- end }}
+        {{- if .Values.matter.enabled }}
+        - name: matter
+          image: "{{ .Values.matter.repository }}:{{ .Values.matter.tag }}"
+          imagePullPolicy: {{ .Values.matter.pullPolicy }}
+          env:
+            - name: HAMH_HOME_ASSISTANT_URL
+              value: {{ .Values.matter.homeAssistantUrl | default "http://localhost:8123" }}
+            {{- if .Values.matter.existingSecret }}
+            - name: HAMH_HOME_ASSISTANT_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.matter.existingSecret }}
+                  key: {{ .Values.matter.existingSecretKey }}
+            {{- end }}
+        {{- end }}
+        {{- if .Values.pythonMatterServer.enabled }}
+        - name: matter-server
+          image: "{{ .Values.pythonMatterServer.repository }}:{{ .Values.pythonMatterServer.tag }}"
+          imagePullPolicy: {{ .Values.pythonMatterServer.pullPolicy }}
+          volumeMounts:
+            - name: matter-server-data
+              mountPath: /data
+        {{- end }}
+      volumes:
+        - name: dbus
+          hostPath:
+            path: /run/dbus
+            type: Directory
+        - name: config-volume
+          persistentVolumeClaim:
+            claimName: {{ include "home-assistant.fullname" . }}-config
+        {{- if and .Values.backupLocation.enabled .Values.backupShipper.enabled }}
+        - name: backup-volume
+          persistentVolumeClaim:
+            claimName: {{ if .Values.backupLocation.existingClaim }}{{ .Values.backupLocation.existingClaim }}{{ else }}{{ include "home-assistant.fullname" . }}-backups{{ end }}
+        {{- end }}
+        {{- if and .Values.backupLocation.enabled .Values.backupShipper.enabled }}
+        - name: backup-script
+          configMap:
+            name: {{ include "home-assistant.fullname" . }}-backup-script
+            defaultMode: 0755
+        {{- end }}
+        {{- if .Values.pythonMatterServer.enabled }}
+        - name: matter-server-data
+          persistentVolumeClaim:
+            claimName: {{ if .Values.pythonMatterServer.persistence.existingClaim }}{{ .Values.pythonMatterServer.persistence.existingClaim }}{{ else }}{{ include "home-assistant.fullname" . }}-matter-server{{ end }}
+        {{- end }}

@@ -1,0 +1,124 @@
+image:
+  repository: ghcr.io/home-assistant/home-assistant
+  tag: "2026.7.2"
+  pullPolicy: IfNotPresent
+
+# All optional sidecars default to disabled so that a plain `helm install`
+# only ever brings up the Home Assistant container itself. Enable the
+# pieces you need via values overrides (see README.md).
+backupShipper:
+  enabled: false
+  repository: ghcr.io/dominik-ba/alpine-rsync
+  tag: "2026.07.15-de5939e"
+  pullPolicy: IfNotPresent
+
+matter:
+  enabled: false
+  repository: ghcr.io/riddix/home-assistant-matter-hub
+  tag: "2.0.49"
+  pullPolicy: IfNotPresent
+  homeAssistantUrl: http://localhost:8123
+  # Name of a pre-existing Secret containing the long-term Home Assistant
+  # access token for matter-hub. Leave empty to run without a token
+  # (bring your own secret management: 1Password Operator, External
+  # Secrets Operator, a plain Secret manifest, etc.).
+  existingSecret: ""
+  # Key inside existingSecret holding the token; must match the field name
+  # used in the secretKeyRef in templates/statefulset.yaml.
+  existingSecretKey: HAMH_HOME_ASSISTANT_ACCESS_TOKEN
+
+pythonMatterServer:
+  enabled: false
+  repository: ghcr.io/matter-js/python-matter-server
+  tag: "8.1.2"
+  pullPolicy: IfNotPresent
+  # BLE-based Matter commissioning is off by default (the image's default CMD
+  # doesn't enable it either). If needed later: mount /run/dbus, set container
+  # args to ["--storage-path", "/data", "--paa-root-cert-dir", "/data/credentials",
+  # "--bluetooth-adapter", "0"], and add whatever securityContext/apparmor
+  # settings your node's container runtime requires for dbus/BLE access.
+  persistence:
+    enabled: true
+    existingClaim: ""
+    size: 1Gi
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+
+serviceAccount:
+  create: true
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 8123
+  containerPort: 8123
+
+replicaCount: 1
+
+# Home Assistant commonly relies on host networking for mDNS/SSDP/multicast discovery.
+hostNetwork: true
+
+env:
+  TZ: UTC
+
+podSecurityContext:
+  fsGroup: 1000
+containerSecurityContext:
+  privileged: true
+  capabilities:
+    add:
+    - NET_ADMIN
+    - NET_RAW
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+
+backupLocation:
+  enabled: false
+  existingClaim: ""
+  size: 10Gi
+  storageClassName: ""
+  accessModes:
+    - ReadWriteMany
+  mountPath: /backup-target
+  subPath: home-assistant
+
+backupPolicy:
+  retention:
+    keep: 7
+
+probes:
+  enabled: true
+  startup:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+  liveness:
+    initialDelaySeconds: 120
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: ""
+  path: /
+  pathType: Prefix
+  tls: []
