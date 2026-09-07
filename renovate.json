@@ -1,0 +1,38 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "alpine-rsync"
+      ],
+      "matchManagers": [
+        "helmv3"
+      ],
+      "enabled": true
+    },
+    {
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "assignees": [
+        "dominik-ba"
+      ]
+    },
+    {
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "automerge": true,
+      "minimumReleaseAge": "5 days"
+    },
+    {
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true
+    }
+  ]
+}
