@@ -54,11 +54,6 @@ that depends on this one and:
 - creates whatever Secret/CRD your secret manager needs and points
   `home-assistant.matter.existingSecret` at it.
 
-For a concrete example of this pattern (1Password integration, fixed node
-placement, ingress host), see the `home-assistant-app` wrapper chart in
-[dominik-ba/my-raspi-cluster](https://github.com/dominik-ba/my-raspi-cluster/tree/main/gitops/helm/home-assistant-app),
-which consumes this chart as an OCI dependency.
-
 ## Releases
 
 Releases are driven by the `version:` in `Chart.yaml`. When `main` holds a
