@@ -1,44 +1,99 @@
 name: Release Chart
 
+# A release is driven by the `version:` in Chart.yaml: whenever main contains a
+# chart version that has not been released yet, this workflow pushes the OCI
+# artifact, tags the commit and creates a GitHub Release. Renovate bumps the
+# chart version together with every image update (see renovate.json).
+#
+# Releases are immutable: a version that already has a tag or an OCI artifact is
+# never pushed again. To change a released chart, bump the version.
+
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
+    paths:
+      - Chart.yaml
+  workflow_dispatch:
 
 permissions:
   contents: read
-  packages: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Package & Push to GHCR
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # create the tag and the GitHub Release
+      packages: write  # push to ghcr.io
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Helm
-        uses: azure/setup-helm@v5
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
           version: 'v4.3.1'
 
-      - name: Verify tag matches Chart.yaml version
+      - name: Read chart version
+        id: version
         run: |
-          tag_version="${GITHUB_REF_NAME#v}"
-          chart_version=$(grep '^version:' Chart.yaml | awk '{print $2}')
-          if [ "$tag_version" != "$chart_version" ]; then
-            echo "::error::Tag v$tag_version does not match Chart.yaml version $chart_version"
-            exit 1
+          version=$(awk '/^version:/ {print $2}' Chart.yaml | tr -d '"')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Chart version: $version"
+
+      - name: Log in to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GH_TOKEN" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Check whether this version is already released
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          released=false
+          if gh api "repos/${{ github.repository }}/git/ref/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists"
+            released=true
+          fi
+          if helm show chart "oci://ghcr.io/${{ github.repository_owner }}/charts/home-assistant" --version "$VERSION" >/dev/null 2>&1; then
+            echo "OCI artifact home-assistant:$VERSION already exists"
+            released=true
+          fi
+          echo "released=$released" >> "$GITHUB_OUTPUT"
+          if [ "$released" = "true" ]; then
+            echo "::notice::home-assistant $VERSION is already released, nothing to do (bump the version in Chart.yaml to release)"
           fi
 
       - name: Lint chart
+        if: steps.check.outputs.released == 'false'
         run: helm lint . --strict
 
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
-
       - name: Package chart
+        if: steps.check.outputs.released == 'false'
         run: helm package .
 
       - name: Push chart to GHCR
-        run: helm push home-assistant-*.tgz oci://ghcr.io/dominik-ba/charts
+        if: steps.check.outputs.released == 'false'
+        run: helm push home-assistant-${{ steps.version.outputs.version }}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+
+      - name: Create tag and GitHub Release
+        if: steps.check.outputs.released == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" "home-assistant-$VERSION.tgz" \
+            --repo "${{ github.repository }}" \
+            --target "${{ github.sha }}" \
+            --title "v$VERSION" \
+            --generate-notes

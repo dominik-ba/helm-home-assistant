@@ -61,6 +61,19 @@ which consumes this chart as an OCI dependency.
 
 ## Releases
 
-Tagging a commit `vX.Y.Z` (matching the version in `Chart.yaml`) packages the
-chart and publishes it to `oci://ghcr.io/dominik-ba/charts/home-assistant` via
-the `release` GitHub Actions workflow.
+Releases are driven by the `version:` in `Chart.yaml`. When `main` holds a
+version that has not been released yet, the `release` workflow publishes it to
+`oci://ghcr.io/dominik-ba/charts/home-assistant`, tags the commit `vX.Y.Z` and
+creates a GitHub Release. To release, bump the version in a PR and merge it.
+
+Renovate bumps the patch version together with every image update, so image
+updates are released without manual steps.
+
+Released versions are immutable: the workflow never re-pushes a version that
+already has a tag or an OCI artifact.
+
+## Pull requests from forks
+
+CI runs on PRs from forks with a read-only token and without secrets.
+Workflows from first-time and outside contributors need approval before they
+run.
