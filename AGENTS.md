@@ -12,11 +12,10 @@ repo is public; anyone can open pull requests from forks.
 
 By default only the Home Assistant container is enabled. Optional sidecars (backup
 shipper, Matter hub, python-matter-server), ingress and persistence are opt-in. The
-chart has no site-specific configuration. The main consumer is the `home-assistant-app`
-wrapper chart in [dominik-ba/my-raspi-cluster](https://github.com/dominik-ba/my-raspi-cluster)
-(`gitops/helm/home-assistant-app`), which adds 1Password, node placement, ingress host
-and storage classes and is deployed by ArgoCD. Site-specific values belong in that
-wrapper, not here.
+chart has no site-specific configuration. Consumers set node placement, ingress host and
+storage classes in their own values file and only need a wrapper chart when they add
+resources this chart does not render, e.g. secret-manager objects (see "Site-specific
+setup" in `README.md`). Site-specific values belong there, not here.
 
 ## Layout
 

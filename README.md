@@ -41,23 +41,61 @@ kubectl -n home-assistant exec -it statefulset/home-assistant -c home-assistant 
 - `matter.enabled` (default `false`) toggles the [home-assistant-matter-hub](https://github.com/t0bst4r/home-assistant-matter-hub) sidecar, which exposes Home Assistant entities as Matter devices to other ecosystems. It needs a long-term Home Assistant access token: set `matter.existingSecret` to the name of a Secret you create yourself (via 1Password Operator, External Secrets Operator, a plain `kubectl create secret`, etc.) with the token under the key named by `matter.existingSecretKey` (default `HAMH_HOME_ASSISTANT_ACCESS_TOKEN`). This chart does not create that Secret for you.
 - `pythonMatterServer.enabled` (default `false`) toggles an additional [python-matter-server](https://github.com/matter-js/python-matter-server) sidecar — a Matter *controller* consumed by Home Assistant's built-in Matter integration, distinct from the matter-hub sidecar above. It relies on the pod's `hostNetwork: true` for mDNS/Thread and gets its own PVC (`pythonMatterServer.persistence.*`) for `/data`.
 
-## Wrapping this chart
+## Site-specific setup
 
 This chart is intentionally free of any site-specific configuration (fixed
 hostnames, node pinning, secret manager integration, storage classes tied to
-a particular NAS, etc.). To layer that on top, create a small wrapper chart
-that depends on this one and:
+a particular NAS, etc.). How you add yours depends on whether you only
+configure the chart or also need extra Kubernetes resources.
 
-- sets `nodeSelector`, `ingress.host`, `persistence.storageClassName`, and
-  other environment-specific values in its own `values.yaml` under the
-  `home-assistant:` key,
-- creates whatever Secret/CRD your secret manager needs and points
-  `home-assistant.matter.existingSecret` at it.
+### Configuration only: a values file
 
-For a concrete example of this pattern (1Password integration, fixed node
-placement, ingress host), see the `home-assistant-app` wrapper chart in
-[dominik-ba/my-raspi-cluster](https://github.com/dominik-ba/my-raspi-cluster/tree/main/gitops/helm/home-assistant-app),
-which consumes this chart as an OCI dependency.
+`nodeSelector`, `ingress.host`, `persistence.storageClassName`, sidecar
+toggles, the name of an existing Secret for `matter.existingSecret`:
+everything the chart exposes in `values.yaml` goes into your own values file.
+No wrapper chart is needed.
+
+```sh
+helm install home-assistant oci://ghcr.io/dominik-ba/charts/home-assistant \
+  --version <version> -n home-assistant --create-namespace -f my-values.yaml
+```
+
+With ArgoCD, keep the values file in your own Git repository and reference it
+from a multi-source `Application`:
+
+```yaml
+spec:
+  sources:
+    - chart: home-assistant
+      repoURL: ghcr.io/dominik-ba/charts
+      targetRevision: <version>
+      helm:
+        valueFiles:
+          - $values/home-assistant/values.yaml
+    - repoURL: https://github.com/<you>/<your-config-repo>.git
+      targetRevision: main
+      ref: values
+```
+
+### Additional resources: a wrapper chart
+
+If you need resources this chart does not render, such as a secret-manager
+object (1Password `OnePasswordItem`, External Secrets `ExternalSecret`) that
+creates the Secret for `matter.existingSecret`, static PVs, an extra ingress
+or middleware, create a small wrapper chart that depends on this one and adds
+them in its own `templates/`. Values for this chart then go under the
+`home-assistant:` key of the wrapper's `values.yaml`.
+
+```yaml
+# Chart.yaml
+dependencies:
+  - name: home-assistant
+    version: "<version>"
+    repository: "oci://ghcr.io/dominik-ba/charts"
+```
+
+Commit `Chart.lock` and let `helm dependency build` (or ArgoCD) fetch the
+chart; don't commit the downloaded `charts/*.tgz`.
 
 ## Releases
 

@@ -10,9 +10,8 @@ Claude Code operating rules and does not repeat that content.
   `AGENTS.md` and report the actual output.
 - Any change to what the chart renders needs a `version:` bump in `Chart.yaml`, because
   released versions are immutable. Say which bump you chose and why.
-- This chart is consumed by `gitops/helm/home-assistant-app` in
-  `dominik-ba/my-raspi-cluster`. Never change resource names, selector labels or PVC names
-  without calling out the data impact on that deployment (local-path volumes on one node).
+- Never change resource names, selector labels or PVC names without calling out the data
+  impact on existing installations (e.g. node-bound local-path volumes).
 - Do not weaken workflow permissions or switch CI to `pull_request_target`; fork PRs
   must stay without secrets and write access.
 - No secrets belong in this repository.

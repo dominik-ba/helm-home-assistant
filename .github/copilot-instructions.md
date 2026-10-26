@@ -9,8 +9,8 @@ short standalone summary for Copilot Chat, agent mode and Copilot CLI.
 Generic Helm chart for Home Assistant, published to
 `oci://ghcr.io/dominik-ba/charts/home-assistant`. Only the Home Assistant container is on
 by default; backup shipper, Matter hub, python-matter-server, ingress and persistence are
-opt-in. Site-specific configuration lives in the `home-assistant-app` wrapper chart in
-`dominik-ba/my-raspi-cluster`, not here.
+opt-in. Site-specific configuration belongs in a consumer's values file (or a wrapper
+chart for extra resources), not here.
 
 ## Commands
 
