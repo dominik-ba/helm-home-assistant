@@ -1,9 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
   ],
   "packageRules": [
+    {
+      "description": "Bump the chart version with every image update, so main always holds a releasable version (release.yaml publishes it)",
+      "matchManagers": [
+        "helm-values"
+      ],
+      "bumpVersion": "patch"
+    },
     {
       "matchPackagePatterns": [
         "alpine-rsync"
