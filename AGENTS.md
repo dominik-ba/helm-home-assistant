@@ -59,15 +59,22 @@ Before proposing a change as complete, run and report:
   creates a GitHub Release.
 - Released versions are immutable. The workflow never re-pushes a version that already
   has a tag or an OCI artifact. Any change to what the chart renders needs a version bump.
-- Renovate bumps the patch version with every image update detected by its helm-values
-  manager. For a manual change: patch for fixes, minor for new values, major for
-  breaking value changes.
+- Renovate bumps the patch version with every image update (helm-values manager, which
+  detects every `image:` block, including the sidecars). For a manual change while the
+  chart is 0.x: patch for fixes, minor for new values or breaking value changes (with an
+  upgrade note in `README.md`); from 1.0 on, breaking value changes are major.
+- Monthly Home Assistant releases are never automerged (Renovate counts them as minor);
+  patch releases are. Review the skipped releases' backward-incompatible changes in the PR.
 
 ## Conventions to preserve
 
 - Everything site-specific stays configurable through `values.yaml`; defaults must work
   in a plain cluster with only Home Assistant enabled.
 - Optional features default to off.
+- Every container image is an `image:` block with `repository`, `tag` and `pullPolicy`
+  (top-level `image` for Home Assistant, `<sidecar>.image` for sidecars), pinned to an
+  exact tag. Renovate's helm-values manager only detects keys ending in `image`, so never
+  use flat `repository`/`tag` keys; no custom regex manager is needed.
 - `hostNetwork: true` is the default on purpose (mDNS/SSDP discovery).
 - The chart never creates the Matter hub token Secret; it only references
   `matter.existingSecret`.
@@ -84,13 +91,6 @@ Before proposing a change as complete, run and report:
 - Third-party actions are pinned to commit SHAs (Renovate keeps them current). Keep new
   actions pinned the same way.
 
-## Known gaps
-
-- Renovate's helm-values manager only detects the `image:` block. The flat sidecar image
-  keys (`backupShipper`, `matter`, `pythonMatterServer`) are not tracked, so those tags
-  are only updated by hand. Fixing this needs either a values restructure (breaking for
-  wrappers) or a custom regex manager; raise it as a proposal.
-
 ## Pitfalls
 
 - **Verify published artifacts without local registry logins.** Helm and Docker fall back to
@@ -105,10 +105,9 @@ Before proposing a change as complete, run and report:
   `gh api -X PATCH repos/<owner>/<repo>/pulls/<n> -f title=... -F body=@file.md`.
 - This repository is public: never reference private consumer repositories (names, paths,
   hostnames, cluster details) in docs, AI files, comments, commit messages or PR texts.
-- **Monthly Home Assistant releases (`YYYY.M.x`) count as "minor" for Renovate** but carry
-  backward-incompatible changes. An image update PR that skips releases needs the
-  "Backward-incompatible changes" of every skipped release in its description. Home
-  Assistant migrates its storage files on upgrade, so rolling back requires a backup.
+- Home Assistant migrates its storage files when it starts a new monthly release, so a
+  rollback to the previous image needs a backup taken before the upgrade. Mention this in
+  the upgrade PR (see "Releases" for the review of skipped releases).
 - The `python-matter-server` sidecar image is archived upstream (8.1.2 is the final
   release; the successor is the matter.js-based server). Home Assistant's Matter client
   stays compatible as long as both use the same schema version (11 as of 2026.10).

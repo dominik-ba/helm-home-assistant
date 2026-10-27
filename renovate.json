@@ -41,6 +41,27 @@
         "patch"
       ],
       "automerge": true
+    },
+    {
+      "description": "Monthly Home Assistant releases (YYYY.M) count as minor but contain backward-incompatible changes: never automerge them; patch releases (YYYY.M.x) still automerge",
+      "matchPackageNames": [
+        "ghcr.io/home-assistant/home-assistant"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "major"
+      ],
+      "automerge": false,
+      "prBodyNotes": [
+        "Review the \"Backward-incompatible changes\" of every release this skips (https://www.home-assistant.io/blog/categories/core/) and take a backup first: newer releases migrate storage files, so a rollback needs the backup."
+      ]
+    },
+    {
+      "description": "alpine-rsync tags are <date>-<commit>; compare the date only",
+      "matchPackageNames": [
+        "ghcr.io/dominik-ba/alpine-rsync"
+      ],
+      "versioning": "regex:^(?<major>\\d{4})\\.(?<minor>\\d{2})\\.(?<patch>\\d{2})-[0-9a-f]{7}$"
     }
   ]
 }

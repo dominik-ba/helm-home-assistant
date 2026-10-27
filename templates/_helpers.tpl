@@ -60,3 +60,18 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Fail early when values still use the flat sidecar image keys from chart < 0.3.0
+(e.g. backupShipper.repository); they moved under <sidecar>.image.
+*/}}
+{{- define "home-assistant.validateValues" -}}
+{{- range $sidecar := list "backupShipper" "matter" "pythonMatterServer" }}
+{{- $v := index $.Values $sidecar }}
+{{- range $key := list "repository" "tag" "pullPolicy" }}
+{{- if hasKey $v $key }}
+{{- fail (printf "%s.%s moved to %s.image.%s in chart 0.3.0" $sidecar $key $sidecar $key) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
