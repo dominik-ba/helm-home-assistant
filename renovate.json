@@ -63,18 +63,5 @@
       ],
       "versioning": "regex:^(?<major>\\d{4})\\.(?<minor>\\d{2})\\.(?<patch>\\d{2})-[0-9a-f]{7}$"
     }
-  ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "description": "Sidecar images use flat repository/tag keys that the helm-values manager does not detect",
-      "fileMatch": [
-        "(^|/)values\\.yaml$"
-      ],
-      "matchStrings": [
-        "(?:backupShipper|matter|pythonMatterServer):\\n(?:  .*\\n)*?  repository: (?<depName>\\S+)\\n  tag: \"(?<currentValue>[^\"]+)\""
-      ],
-      "datasourceTemplate": "docker"
-    }
   ]
 }

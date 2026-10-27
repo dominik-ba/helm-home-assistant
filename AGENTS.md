@@ -59,11 +59,10 @@ Before proposing a change as complete, run and report:
   creates a GitHub Release.
 - Released versions are immutable. The workflow never re-pushes a version that already
   has a tag or an OCI artifact. Any change to what the chart renders needs a version bump.
-- Renovate bumps the patch version with every Home Assistant image update (helm-values
-  manager). Sidecar images (`backupShipper`, `matter`, `pythonMatterServer`) are tracked
-  by a custom regex manager, which `bumpVersion` does not cover: add a patch bump to those
-  PRs before merging, otherwise the update is not released. For a manual change: patch
-  for fixes, minor for new values, major for breaking value changes.
+- Renovate bumps the patch version with every image update (helm-values manager, which
+  detects every `image:` block, including the sidecars). For a manual change while the
+  chart is 0.x: patch for fixes, minor for new values or breaking value changes (with an
+  upgrade note in `README.md`); from 1.0 on, breaking value changes are major.
 - Monthly Home Assistant releases are never automerged (Renovate counts them as minor);
   patch releases are. Review the skipped releases' backward-incompatible changes in the PR.
 
@@ -72,6 +71,10 @@ Before proposing a change as complete, run and report:
 - Everything site-specific stays configurable through `values.yaml`; defaults must work
   in a plain cluster with only Home Assistant enabled.
 - Optional features default to off.
+- Every container image is an `image:` block with `repository`, `tag` and `pullPolicy`
+  (top-level `image` for Home Assistant, `<sidecar>.image` for sidecars), pinned to an
+  exact tag. Renovate's helm-values manager only detects keys ending in `image`, so never
+  use flat `repository`/`tag` keys; no custom regex manager is needed.
 - `hostNetwork: true` is the default on purpose (mDNS/SSDP discovery).
 - The chart never creates the Matter hub token Secret; it only references
   `matter.existingSecret`.

@@ -1,3 +1,4 @@
+{{- include "home-assistant.validateValues" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -114,8 +115,8 @@ spec:
           {{- end }}
         {{- if and .Values.backupShipper.enabled .Values.backupLocation.enabled }}
         - name: backup-shipper
-          image: "{{ .Values.backupShipper.repository }}:{{ .Values.backupShipper.tag }}"
-          imagePullPolicy: {{ .Values.backupShipper.pullPolicy }}
+          image: "{{ .Values.backupShipper.image.repository }}:{{ .Values.backupShipper.image.tag }}"
+          imagePullPolicy: {{ .Values.backupShipper.image.pullPolicy }}
           command: ["/bin/sh", "-c", "/scripts/backup-shipper.sh"]
           securityContext:
             runAsGroup: 1000
@@ -131,8 +132,8 @@ spec:
         {{- end }}
         {{- if .Values.matter.enabled }}
         - name: matter
-          image: "{{ .Values.matter.repository }}:{{ .Values.matter.tag }}"
-          imagePullPolicy: {{ .Values.matter.pullPolicy }}
+          image: "{{ .Values.matter.image.repository }}:{{ .Values.matter.image.tag }}"
+          imagePullPolicy: {{ .Values.matter.image.pullPolicy }}
           env:
             - name: HAMH_HOME_ASSISTANT_URL
               value: {{ .Values.matter.homeAssistantUrl | default "http://localhost:8123" }}
@@ -146,8 +147,8 @@ spec:
         {{- end }}
         {{- if .Values.pythonMatterServer.enabled }}
         - name: matter-server
-          image: "{{ .Values.pythonMatterServer.repository }}:{{ .Values.pythonMatterServer.tag }}"
-          imagePullPolicy: {{ .Values.pythonMatterServer.pullPolicy }}
+          image: "{{ .Values.pythonMatterServer.image.repository }}:{{ .Values.pythonMatterServer.image.tag }}"
+          imagePullPolicy: {{ .Values.pythonMatterServer.image.pullPolicy }}
           volumeMounts:
             - name: matter-server-data
               mountPath: /data

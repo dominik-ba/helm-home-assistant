@@ -44,6 +44,13 @@ jobs:
             --set ingress.host=home-assistant.example.com \
             > /tmp/full.yaml
 
+      - name: Reject pre-0.3.0 flat sidecar image keys
+        run: |
+          if helm template home-assistant . --set backupShipper.repository=example >/dev/null 2>&1; then
+            echo "::error::flat sidecar image keys must fail rendering (moved under <sidecar>.image)"
+            exit 1
+          fi
+
       - name: Install kubeconform
         run: |
           curl -sSLo /tmp/kubeconform.tar.gz \

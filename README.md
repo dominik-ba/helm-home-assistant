@@ -41,6 +41,22 @@ kubectl -n home-assistant exec -it statefulset/home-assistant -c home-assistant 
 - `matter.enabled` (default `false`) toggles the [home-assistant-matter-hub](https://github.com/t0bst4r/home-assistant-matter-hub) sidecar, which exposes Home Assistant entities as Matter devices to other ecosystems. It needs a long-term Home Assistant access token: set `matter.existingSecret` to the name of a Secret you create yourself (via 1Password Operator, External Secrets Operator, a plain `kubectl create secret`, etc.) with the token under the key named by `matter.existingSecretKey` (default `HAMH_HOME_ASSISTANT_ACCESS_TOKEN`). This chart does not create that Secret for you.
 - `pythonMatterServer.enabled` (default `false`) toggles an additional [python-matter-server](https://github.com/matter-js/python-matter-server) sidecar — a Matter *controller* consumed by Home Assistant's built-in Matter integration, distinct from the matter-hub sidecar above. It relies on the pod's `hostNetwork: true` for mDNS/Thread and gets its own PVC (`pythonMatterServer.persistence.*`) for `/data`.
 
+## Upgrading
+
+### To 0.3.0
+
+The sidecar image settings moved under an `image:` block, like the Home Assistant image:
+
+| Before (< 0.3.0) | Since 0.3.0 |
+|---|---|
+| `backupShipper.repository`, `.tag`, `.pullPolicy` | `backupShipper.image.repository`, `.tag`, `.pullPolicy` |
+| `matter.repository`, `.tag`, `.pullPolicy` | `matter.image.repository`, `.tag`, `.pullPolicy` |
+| `pythonMatterServer.repository`, `.tag`, `.pullPolicy` | `pythonMatterServer.image.repository`, `.tag`, `.pullPolicy` |
+
+Rendering fails with a message naming the new key if your values still use an old one.
+Nothing else changes; with the default image values the rendered manifests are identical
+apart from the chart version label.
+
 ## Site-specific setup
 
 This chart is intentionally free of any site-specific configuration (fixed
