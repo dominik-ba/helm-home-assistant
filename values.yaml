@@ -17,7 +17,7 @@ matter:
   enabled: false
   image:
     repository: ghcr.io/riddix/home-assistant-matter-hub
-    tag: "2.0.49"
+    tag: "2.0.59"
     pullPolicy: IfNotPresent
   homeAssistantUrl: http://localhost:8123
   # Name of a pre-existing Secret containing the long-term Home Assistant
