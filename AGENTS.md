@@ -59,9 +59,13 @@ Before proposing a change as complete, run and report:
   creates a GitHub Release.
 - Released versions are immutable. The workflow never re-pushes a version that already
   has a tag or an OCI artifact. Any change to what the chart renders needs a version bump.
-- Renovate bumps the patch version with every image update detected by its helm-values
-  manager. For a manual change: patch for fixes, minor for new values, major for
-  breaking value changes.
+- Renovate bumps the patch version with every Home Assistant image update (helm-values
+  manager). Sidecar images (`backupShipper`, `matter`, `pythonMatterServer`) are tracked
+  by a custom regex manager, which `bumpVersion` does not cover: add a patch bump to those
+  PRs before merging, otherwise the update is not released. For a manual change: patch
+  for fixes, minor for new values, major for breaking value changes.
+- Monthly Home Assistant releases are never automerged (Renovate counts them as minor);
+  patch releases are. Review the skipped releases' backward-incompatible changes in the PR.
 
 ## Conventions to preserve
 
@@ -83,13 +87,6 @@ Before proposing a change as complete, run and report:
   the release job on `main`.
 - Third-party actions are pinned to commit SHAs (Renovate keeps them current). Keep new
   actions pinned the same way.
-
-## Known gaps
-
-- Renovate's helm-values manager only detects the `image:` block. The flat sidecar image
-  keys (`backupShipper`, `matter`, `pythonMatterServer`) are not tracked, so those tags
-  are only updated by hand. Fixing this needs either a values restructure (breaking for
-  wrappers) or a custom regex manager; raise it as a proposal.
 
 ## Scope limit for agents
 
