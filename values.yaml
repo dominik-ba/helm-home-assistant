@@ -8,15 +8,17 @@ image:
 # pieces you need via values overrides (see README.md).
 backupShipper:
   enabled: false
-  repository: ghcr.io/dominik-ba/alpine-rsync
-  tag: "2026.07.15-de5939e"
-  pullPolicy: IfNotPresent
+  image:
+    repository: ghcr.io/dominik-ba/alpine-rsync
+    tag: "2026.07.15-de5939e"
+    pullPolicy: IfNotPresent
 
 matter:
   enabled: false
-  repository: ghcr.io/riddix/home-assistant-matter-hub
-  tag: "2.0.49"
-  pullPolicy: IfNotPresent
+  image:
+    repository: ghcr.io/riddix/home-assistant-matter-hub
+    tag: "2.0.49"
+    pullPolicy: IfNotPresent
   homeAssistantUrl: http://localhost:8123
   # Name of a pre-existing Secret containing the long-term Home Assistant
   # access token for matter-hub. Leave empty to run without a token
@@ -29,9 +31,10 @@ matter:
 
 pythonMatterServer:
   enabled: false
-  repository: ghcr.io/matter-js/python-matter-server
-  tag: "8.1.2"
-  pullPolicy: IfNotPresent
+  image:
+    repository: ghcr.io/matter-js/python-matter-server
+    tag: "8.1.2"
+    pullPolicy: IfNotPresent
   # BLE-based Matter commissioning is off by default (the image's default CMD
   # doesn't enable it either). If needed later: mount /run/dbus, set container
   # args to ["--storage-path", "/data", "--paa-root-cert-dir", "/data/credentials",
