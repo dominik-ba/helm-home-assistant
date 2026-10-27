@@ -91,6 +91,28 @@ Before proposing a change as complete, run and report:
   are only updated by hand. Fixing this needs either a values restructure (breaking for
   wrappers) or a custom regex manager; raise it as a proposal.
 
+## Pitfalls
+
+- **Verify published artifacts without local registry logins.** Helm and Docker fall back to
+  a Docker credential store (`credsStore` in `~/.docker/config.json`, e.g. Docker Desktop).
+  A stale GHCR login there makes public packages fail with `403 denied`, and
+  `--registry-config /dev/null` does not stop Helm from using it. Use an empty
+  `DOCKER_CONFIG` directory plus an empty `--registry-config` file, or the anonymous token
+  flow: `curl "https://ghcr.io/token?scope=repository:<owner>/<name>:pull&service=ghcr.io"`,
+  then `GET https://ghcr.io/v2/<owner>/<name>/tags/list` with the bearer token.
+- GHCR package visibility is a separate setting from repository visibility.
+- `gh pr edit` can fail with "Projects (classic) is being deprecated". Use
+  `gh api -X PATCH repos/<owner>/<repo>/pulls/<n> -f title=... -F body=@file.md`.
+- This repository is public: never reference private consumer repositories (names, paths,
+  hostnames, cluster details) in docs, AI files, comments, commit messages or PR texts.
+- **Monthly Home Assistant releases (`YYYY.M.x`) count as "minor" for Renovate** but carry
+  backward-incompatible changes. An image update PR that skips releases needs the
+  "Backward-incompatible changes" of every skipped release in its description. Home
+  Assistant migrates its storage files on upgrade, so rolling back requires a backup.
+- The `python-matter-server` sidecar image is archived upstream (8.1.2 is the final
+  release; the successor is the matter.js-based server). Home Assistant's Matter client
+  stays compatible as long as both use the same schema version (11 as of 2026.10).
+
 ## Scope limit for agents
 
 Only change what the task asks. Do not change released versions, the release flow or
