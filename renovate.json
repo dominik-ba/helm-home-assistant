@@ -62,6 +62,19 @@
         "ghcr.io/dominik-ba/alpine-rsync"
       ],
       "versioning": "regex:^(?<major>\\d{4})\\.(?<minor>\\d{2})\\.(?<patch>\\d{2})-[0-9a-f]{7}$"
+    },
+    {
+      "description": "This action runs with write permissions and the Claude token, so review every update; weekly because it releases often",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "anthropics/claude-code-action"
+      ],
+      "automerge": false,
+      "schedule": [
+        "* 0-3 * * 1"
+      ]
     }
   ]
 }
