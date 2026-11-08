@@ -6,11 +6,45 @@
   ],
   "packageRules": [
     {
-      "description": "Bump the chart version with every image update, so main always holds a releasable version (release.yaml publishes it)",
+      "description": "Bump the chart version with every image update, so main always holds a releasable version (release.yaml publishes it). bumpVersions works for every manager and bumps once per branch; the managers' own bumpVersion only supports helmv3, not helm-values.",
       "matchManagers": [
+        "helmv3",
         "helm-values"
       ],
-      "bumpVersion": "patch"
+      "bumpVersions": [
+        {
+          "name": "chart-version",
+          "filePatterns": [
+            "Chart.yaml"
+          ],
+          "matchStrings": [
+            "\\nversion: \"?(?<version>\\d+\\.\\d+\\.\\d+)"
+          ],
+          "bumpType": "patch"
+        }
+      ]
+    },
+    {
+      "description": "A major image update can break existing installations: release it as a new chart major, so deploying repositories get a major update PR (no automerge) instead of a patch",
+      "matchManagers": [
+        "helmv3",
+        "helm-values"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "bumpVersions": [
+        {
+          "name": "chart-version",
+          "filePatterns": [
+            "Chart.yaml"
+          ],
+          "matchStrings": [
+            "\\nversion: \"?(?<version>\\d+\\.\\d+\\.\\d+)"
+          ],
+          "bumpType": "major"
+        }
+      ]
     },
     {
       "matchPackagePatterns": [
@@ -43,7 +77,7 @@
       "automerge": true
     },
     {
-      "description": "Monthly Home Assistant releases (YYYY.M) count as minor but contain backward-incompatible changes: never automerge them; patch releases (YYYY.M.x) still automerge",
+      "description": "Monthly Home Assistant releases (YYYY.M) count as minor but contain backward-incompatible changes: never automerge them; patch releases (YYYY.M.x) still automerge. They also become a new chart major, so deploying repositories review them instead of automerging a chart patch",
       "matchPackageNames": [
         "ghcr.io/home-assistant/home-assistant"
       ],
@@ -54,6 +88,18 @@
       "automerge": false,
       "prBodyNotes": [
         "Review the \"Backward-incompatible changes\" of every release this skips (https://www.home-assistant.io/blog/categories/core/) and take a backup first: newer releases migrate storage files, so a rollback needs the backup."
+      ],
+      "bumpVersions": [
+        {
+          "name": "chart-version",
+          "filePatterns": [
+            "Chart.yaml"
+          ],
+          "matchStrings": [
+            "\\nversion: \"?(?<version>\\d+\\.\\d+\\.\\d+)"
+          ],
+          "bumpType": "major"
+        }
       ]
     },
     {

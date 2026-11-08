@@ -120,8 +120,11 @@ version that has not been released yet, the `release` workflow publishes it to
 `oci://ghcr.io/dominik-ba/charts/home-assistant`, tags the commit `vX.Y.Z` and
 creates a GitHub Release. To release, bump the version in a PR and merge it.
 
-Renovate bumps the patch version together with every image update, so image
-updates are released without manual steps.
+Renovate bumps the chart version together with every image update, so image
+updates are released without manual steps: a major image update or a monthly
+Home Assistant release becomes a new chart major version, every other update a
+patch version. CI fails a PR that changes the chart while keeping a version
+that is already released.
 
 Released versions are immutable: the workflow never re-pushes a version that
 already has a tag or an OCI artifact.
